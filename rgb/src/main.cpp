@@ -81,6 +81,44 @@ private:
   {
     createInstance();
     setupDebugMessenger();
+    choosePhysicalDevice();
+  }
+
+  void choosePhysicalDevice()
+  {
+    VkPhysicalDevice physicalDevice = VK_NULL_HANDLE;
+
+    uint32_t deviceCount = 0;
+    vkEnumeratePhysicalDevices(instance, &deviceCount, nullptr);
+
+    if (deviceCount == 0)
+    {
+      std::cerr << "ERROR: No Vulkan physical devices found!" << std::endl;
+      throw std::runtime_error("No Vulkan physical devices found!");
+    }
+
+    std::vector<VkPhysicalDevice> devices(deviceCount);
+    vkEnumeratePhysicalDevices(instance, &deviceCount, devices.data());
+
+    for (const auto& device : devices)
+    {
+      if (isDeviceSuitable(device))
+      {
+        physicalDevice = device;
+        break;
+      }
+    }
+
+    if (physicalDevice == VK_NULL_HANDLE)
+    {
+      std::cerr << "ERROR: No suitable Vulkan physical device found!" << std::endl;
+      throw std::runtime_error("No suitable Vulkan physical device found!");
+    }
+  }
+
+  bool isDeviceSuitable(const VkPhysicalDevice device)
+  {
+    return true;
   }
 
   void setupDebugMessenger()
