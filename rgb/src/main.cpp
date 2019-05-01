@@ -4,6 +4,7 @@
 #include <cstdlib>
 #include <functional>
 #include <iostream>
+#include <optional>
 #include <stdexcept>
 #include <unordered_set>
 
@@ -33,6 +34,16 @@ void DestroyDebugUtilsMessengerEXT(VkInstance instance,
     func(instance, debugMessenger, pAllocator);
   }
 }
+
+struct QueueFamilyIndices
+{
+  std::optional<uint32_t> graphicsFamily;
+
+  bool isComplete()
+  {
+    return graphicsFamily.has_value();
+  }
+};
 
 class HelloTriangleApplication
 {
@@ -84,6 +95,34 @@ private:
     choosePhysicalDevice();
   }
 
+  QueueFamilyIndices findQueueFamilies(VkPhysicalDevice device)
+  {
+    QueueFamilyIndices indices;
+
+    uint32_t queueFamilyCount = 0;
+    vkGetPhysicalDeviceQueueFamilyProperties(device, &queueFamilyCount, nullptr);
+
+    std::vector<VkQueueFamilyProperties> queueFamilies(queueFamilyCount);
+    vkGetPhysicalDeviceQueueFamilyProperties(device, &queueFamilyCount, queueFamilies.data());
+
+    int i = 0;
+    for (const auto& queueFamily : queueFamilies)
+    {
+      if (queueFamily.queueCount > 0 && queueFamily.queueFlags & VK_QUEUE_GRAPHICS_BIT)
+      {
+        indices.graphicsFamily = i;
+      }
+
+      if (indices.isComplete())
+      {
+        break;
+      }
+
+      ++i;
+    }
+    return indices;
+  }
+
   void choosePhysicalDevice()
   {
     VkPhysicalDevice physicalDevice = VK_NULL_HANDLE;
@@ -124,7 +163,10 @@ private:
     vkGetPhysicalDeviceProperties(device, &deviceProperties);
     vkGetPhysicalDeviceFeatures(device, &deviceFeatures);
 
-    return deviceProperties.deviceType == VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU;
+    QueueFamilyIndices indices = findQueueFamilies(device);
+
+    return deviceProperties.deviceType == VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU
+      && indices.isComplete();
   }
 
   void setupDebugMessenger()
