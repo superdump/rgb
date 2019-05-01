@@ -13,6 +13,16 @@ private:
   const int WIDTH = 800;
   const int HEIGHT = 600;
 
+  const std::vector<const char*> validationLayers = {
+    "VK_LAYER_KHRONOS_validation"
+  };
+
+#ifdef NDEBUG
+  const bool enableValidationLayers = false;
+#else
+  const bool enableValidationLayers = true;
+#endif
+
   GLFWwindow* window;
 
   VkInstance instance;
@@ -46,6 +56,12 @@ private:
 
   void createInstance()
   {
+    if (enableValidationLayers && !checkValidationLayerSupport())
+    {
+      std::cerr << "ERROR: Missing validation layers!" << std::endl;
+      throw std::runtime_error("Missing validation layers!");
+    }
+
     // This is technically optional but provides useful information for the
     // driver to optimize for our specific application
     VkApplicationInfo appInfo = {};
@@ -70,8 +86,16 @@ private:
     createInfo.enabledExtensionCount = glfwExtensionCount;
     createInfo.ppEnabledExtensionNames = glfwExtensions;
 
-    // FIXME: Global validation layers disabled
-    createInfo.enabledLayerCount = 0;
+    if (enableValidationLayers)
+    {
+      std::cerr << "INFO: Enabling " << validationLayers.size() << " validation layers" << std::endl;
+      createInfo.enabledLayerCount = static_cast<uint32_t>(validationLayers.size());
+      createInfo.ppEnabledLayerNames = validationLayers.data();
+    }
+    else
+    {
+      createInfo.enabledLayerCount = 0;
+    }
 
     auto availableExtensions = getVkExtensions();
     printVkExtensions(availableExtensions);
@@ -88,6 +112,33 @@ private:
       std::cerr << "ERROR: Failed to create a Vulkan instance: " << result << std::endl;
       throw std::runtime_error("Failed to create Vulkan instance!");
     }
+  }
+
+  bool checkValidationLayerSupport()
+  {
+    uint32_t layerCount = 0;
+    vkEnumerateInstanceLayerProperties(&layerCount, nullptr);
+
+    std::vector<VkLayerProperties> layers(layerCount);
+    vkEnumerateInstanceLayerProperties(&layerCount, layers.data());
+
+    std::unordered_set<std::string> availableLayers;
+    for (const auto& layer : layers)
+    {
+      availableLayers.insert(layer.layerName);
+    }
+
+    bool layersPresent = true;
+    for (const auto validationLayer : validationLayers)
+    {
+      if (availableLayers.find(validationLayer) == availableLayers.end())
+      {
+        std::cerr << "WARNING: " << validationLayer << " is missing" << std::endl;
+        layersPresent = false;
+      }
+    }
+
+    return layersPresent;
   }
 
   std::vector<VkExtensionProperties> getVkExtensions()
