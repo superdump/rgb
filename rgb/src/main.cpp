@@ -65,6 +65,7 @@ private:
 
   VkInstance instance;
   VkDebugUtilsMessengerEXT debugMessenger;
+  VkSurfaceKHR surface;
 
   VkPhysicalDevice physicalDevice = VK_NULL_HANDLE;
   VkDevice device;
@@ -96,9 +97,19 @@ private:
   void initVulkan()
   {
     createInstance();
-    setupDebugMessenger();
+    setupDebugCallback();
+    createSurface();
     choosePhysicalDevice();
     createLogicalDevice();
+  }
+
+  void createSurface()
+  {
+    if (glfwCreateWindowSurface(instance, window, nullptr, &surface) != VK_SUCCESS)
+    {
+      std::cerr << "ERROR: Could not create window surface!" << std::endl;
+      throw std::runtime_error("Could not create window surface!");
+    }
   }
 
   void createLogicalDevice()
@@ -214,7 +225,7 @@ private:
       && indices.isComplete();
   }
 
-  void setupDebugMessenger()
+  void setupDebugCallback()
   {
     if (!enableValidationLayers)
     {
@@ -461,6 +472,7 @@ private:
       DestroyDebugUtilsMessengerEXT(instance, debugMessenger, nullptr);
     }
 
+    vkDestroySurfaceKHR(instance, surface, nullptr);
     vkDestroyInstance(instance, nullptr);
 
     glfwDestroyWindow(window);
