@@ -1,10 +1,11 @@
 #define GLFW_INCLUDE_VULKAN
 #include <GLFW/glfw3.h>
 
+#include <cstdlib>
+#include <functional>
 #include <iostream>
 #include <stdexcept>
-#include <functional>
-#include <cstdlib>
+#include <unordered_set>
 
 class HelloTriangleApplication
 {
@@ -72,10 +73,67 @@ private:
     // FIXME: Global validation layers disabled
     createInfo.enabledLayerCount = 0;
 
-    if (vkCreateInstance(&createInfo, nullptr, &instance) != VK_SUCCESS)
+    auto availableExtensions = getVkExtensions();
+    printVkExtensions(availableExtensions);
+    if (!checkVkExtensions(availableExtensions, glfwExtensions, glfwExtensionCount))
     {
+      std::cerr << "ERROR: Missing extension" << std::endl;
+      throw std::runtime_error("Missing extension");
+    }
+    std::cerr << "INFO: All required extensions present" << std::endl;
+
+    VkResult result = vkCreateInstance(&createInfo, nullptr, &instance);
+    if (result != VK_SUCCESS)
+    {
+      std::cerr << "ERROR: Failed to create a Vulkan instance: " << result << std::endl;
       throw std::runtime_error("Failed to create Vulkan instance!");
     }
+  }
+
+  std::vector<VkExtensionProperties> getVkExtensions()
+  {
+    uint32_t extensionCount = 0;
+    vkEnumerateInstanceExtensionProperties(nullptr, &extensionCount, nullptr);
+
+    std::vector<VkExtensionProperties> extensions(extensionCount);
+
+    vkEnumerateInstanceExtensionProperties(nullptr, &extensionCount, extensions.data());
+
+    return extensions;
+  }
+
+  void printVkExtensions(const std::vector<VkExtensionProperties>& extensions)
+  {
+    std::cerr << "INFO: " << extensions.size() << " available extensions:" << std::endl;
+
+    for (const auto& extension : extensions)
+    {
+      std::cerr << "\t" << extension.extensionName << std::endl;
+    }
+  }
+
+  bool checkVkExtensions(const std::vector<VkExtensionProperties>& extensions, const char **requiredExtensions, const int requiredExtensionCount)
+  {
+    std::unordered_set<std::string> available;
+
+    for (const auto& extension : extensions)
+    {
+      available.insert(&extension.extensionName[0
+    ]);
+    }
+
+    bool extensionsPresent = true;
+    for (int i = 0; i < requiredExtensionCount; ++i)
+    {
+      const char* required = requiredExtensions[i];
+      if (available.find(required) == available.end())
+      {
+        std::cerr << "WARNING: Missing required extension: " << required << std::endl;
+        extensionsPresent = false;
+      }
+    }
+
+    return extensionsPresent;
   }
 
   void mainLoop()
