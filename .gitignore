@@ -340,3 +340,4 @@ ASALocalRun/
 healthchecksdb
 
 *.spv
+!rgb/models/*.obj
